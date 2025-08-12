@@ -334,6 +334,60 @@ function buildChampionshipTop1PerDivision(advRows, revRows, periodValue) {
     daily.forEach((p, nurse) => standings.set(nurse, (standings.get(nurse)||0) + p));
   });
 
+  return Array.from(standings.entries())
+    .map(([nurse, pts]) => ({ nurse, ward: "", count: pts }))
+    .sort((a,b)=> b.count - a.count)
+    .slice(0,50);
+}
+
+async function refreshCumulative() {
+  try {
+    const [advTxt, revTxt] = await Promise.all([
+      fetch(CSV_ADV).then(r=>r.text()),
+      fetch(CSV_REV).then(r=>r.text())
+    ]);
+    const advRows = parseCSV(advTxt);
+    const revRows = parseCSV(revTxt);
+
+    const period = document.getElementById('cum-period').value;
+    const standings = buildChampionshipTop1PerDivision(advRows, revRows, period);
+
+    const list = document.getElementById('list-cum');
+    list.innerHTML = "";
+    standings.forEach((r, idx) => {
+      const rankClass = idx===0 ? "gold" : idx===1 ? "silver" : idx===2 ? "bronze" : "default";
+      const div = document.createElement("div");
+      div.className = "card";
+      div.innerHTML = `
+        <div class="rank ${rankClass}">${idx+1}</div>
+        <div class="avatar">${toInitials(r.nurse)}</div>
+        <div class="meta">
+          <div class="name">${r.nurse}</div>
+          <div class="small">Championship points (Introductions + Reviews)</div>
+        </div>
+        <div class="score">${r.count}</div>
+      `;
+      list.appendChild(div);
+    });
+  } catch (e) {
+    const list = document.getElementById('list-cum');
+    list.innerHTML = "<div class='small' style='padding:8px;color:#ef4444'>Could not compute championship points.</div>";
+    console.error(e);
+  }
+}
+
+/* ====== Wire up controls + initial loads ====== */
+document.getElementById("refresh").addEventListener("click", ()=> loadAndRender(CSV_ADV, document.getElementById("adv-period").value, document.getElementById("list-adv")));
+document.getElementById("refresh2").addEventListener("click", ()=> loadAndRender(CSV_REV, document.getElementById("rev-period").value, document.getElementById("list-rev")));
+loadAndRender(CSV_ADV, document.getElementById("adv-period").value, document.getElementById("list-adv"));
+loadAndRender(CSV_REV, document.getElementById("rev-period").value, document.getElementById("list-rev"));
+
+document.getElementById('refresh-cum').addEventListener('click', refreshCumulative);
+document.getElementById('cum-period').addEventListener('change', refreshCumulative);
+refreshCumulative();
+</script>
+</body>
+</html>
  
 
 
