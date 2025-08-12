@@ -376,7 +376,6 @@ async function refreshCumulative() {
   }
 }
 
-/* ====== Wire up controls + initial loads ====== */
 document.getElementById("refresh").addEventListener("click", ()=> loadAndRender(CSV_ADV, document.getElementById("adv-period").value, document.getElementById("list-adv")));
 document.getElementById("refresh2").addEventListener("click", ()=> loadAndRender(CSV_REV, document.getElementById("rev-period").value, document.getElementById("list-rev")));
 loadAndRender(CSV_ADV, document.getElementById("adv-period").value, document.getElementById("list-adv"));
