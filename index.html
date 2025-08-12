@@ -189,8 +189,10 @@ function renderList(el, rows){
       <div class="avatar">${toInitials(r.nurse)}</div>
       <div class="meta">
         <div class="name">${r.nurse || "(unknown)"} <span class="pill">${r.ward||""}</span></div>
-        <div class="small">Entries counted: ${r.count}</div>
-      </div>
+        <div class="small">
+          Entries counted: ${r.count}
+          ${dateText ? `<br><span class="date">${dateText}</span>` : ""}
+        </div>
       <div class="score">${r.count}</div>
     `;
     el.appendChild(div);
@@ -204,15 +206,26 @@ async function loadAndRender(csvUrl, periodValue, targetEl){
     const txt = await res.text();
     let data = parseCSV(txt);
     const filtered = filterByPeriod(data, periodValue);
+    
     const agg = {};
     filtered.forEach(r => {
       const nurse = r.nurse || r.Nurse || r.name || r.Name || "Unknown";
       const ward = r.ward || r.Ward || "";
       const count = Number(r.count || r.Count || 0);
       const key = nurse + "||" + ward;
-      if (!agg[key]) agg[key] = { nurse, ward, count: 0 };
+      
+      if (!agg[key]) agg[key] = { nurse, ward, count: 0, date: null };
+      
       agg[key].count += (isNaN(count) ? 0 : count);
     });
+    const entryDate = new Date(r.date || r.Date || r.timestamp || r.Timestamp);
+      if (!isNaN(entryDate)) {
+        if (!agg[key].date || entryDate > new Date(agg[key].date)) {
+          agg[key].date = entryDate.toISOString();
+        }
+      }
+    });
+  
     const rows = Object.values(agg).sort((a,b)=> b.count - a.count).slice(0,50);
     renderList(targetEl, rows);
   }catch(e){
