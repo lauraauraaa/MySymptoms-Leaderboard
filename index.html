@@ -107,7 +107,6 @@
     <div class="footer-note">Division 2 counts nurses by number of MySymptoms data reviewed on NexusViewer.</div>
   </div>
 
-  <!-- Cumulative Points Section -->
   <div class="section-title">Championship Standings (Introductions + Reviews)</div>
   <div class="controls">
     <select id="cum-period">
@@ -252,7 +251,6 @@ document.getElementById("refresh2").addEventListener("click", ()=> loadAndRender
 loadAndRender(CSV_ADV, document.getElementById("adv-period").value, document.getElementById("list-adv"));
 loadAndRender(CSV_REV, document.getElementById("rev-period").value, document.getElementById("list-rev"));
 
-/* Confetti */
 const canvas = document.getElementById("confetti");
 const ctx = canvas.getContext("2d");
 let confetti = [];
@@ -285,7 +283,6 @@ function animate(){
   if (confetti.length) requestAnimationFrame(animate);
 }
 
-/* Championship Points logic */
 function groupBy(arr, keyFn) {
   const m = new Map();
   arr.forEach(item => {
