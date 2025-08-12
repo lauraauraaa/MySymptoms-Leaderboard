@@ -1,8 +1,8 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>🏆 MySymptoms Nurse Championship!!! 🏆</title>
   <style>
     :root{
@@ -31,7 +31,7 @@
     h1{font-size:20px;margin:0}
     .sub{color:var(--muted);font-size:13px;margin-top:2px}
     .tabs{display:flex;gap:8px;margin:16px 0 10px;position:sticky;top:0;background:var(--bg);padding:8px 0;z-index:2}
-    .tab{flex:1;text-align:center;padding:10px 12px;border-radius:999px;background:var(--pill);color:var(--accent);font-weight:600;cursor:pointer;border:1px solid rgba(79,70,229,.15);}
+    .tab{flex:1;text-align:center;padding:10px 12px;border-radius:999px;background:var(--pill);color:var(--accent);font-weight:600;border:1px solid rgba(79,70,229,.15);}
     .tab[aria-selected="true"]{background:var(--accent);color:white;box-shadow:var(--shadow)}
     .card{background:var(--card);border-radius:16px;box-shadow:var(--shadow);padding:12px;margin:10px 0;display:flex;align-items:center;gap:12px;}
     .rank{width:34px;height:34px;border-radius:10px;display:grid;place-items:center;font-weight:700;color:white;flex-shrink:0;}
@@ -53,10 +53,7 @@
     button.primary{background:#4f46e5;color:white;border-color:transparent}
     .hint{font-size:12px;color:#64748b}
     canvas#confetti{position:fixed;inset:0;pointer-events:none;z-index:99}
-    button, 
-    .tab {
-    cursor: pointer;
-    }
+    button, .tab { cursor: pointer; }
   </style>
 </head>
 <body>
@@ -71,7 +68,7 @@
   </header>
 
   <div role="tablist" class="tabs">
-    <div class="tab" role="tab" id="tab-adv" aria-controls="panel-adv" aria-selected="true">Division 1 · Highest Introduction Rate </div>
+    <div class="tab" role="tab" id="tab-adv" aria-controls="panel-adv" aria-selected="true">Division 1 · Highest Introduction Rate</div>
     <div class="tab" role="tab" id="tab-rev" aria-controls="panel-rev" aria-selected="false">Division 2 · Highest Nexus Review Rate</div>
   </div>
 
@@ -203,19 +200,19 @@ async function loadAndRender(csvUrl, periodValue, targetEl){
   try{
     const res = await fetch(csvUrl);
     const txt = await res.text();
-    let data = parseCSV(txt);
+    const data = parseCSV(txt);
     const filtered = filterByPeriod(data, periodValue);
-    
+
     const agg = {};
     filtered.forEach(r => {
       const nurse = r.nurse || r.Nurse || r.name || r.Name || "Unknown";
-      const ward = r.ward || r.Ward || "";
+      const ward  = r.ward  || r.Ward  || "";
       const count = Number(r.count || r.Count || 0);
-      const key = nurse + "||" + ward;
-      
+      const key   = nurse + "||" + ward;
+
       if (!agg[key]) agg[key] = { nurse, ward, count: 0, date: null };
       agg[key].count += (isNaN(count) ? 0 : count);
-    
+
       const entryDate = new Date(r.date || r.Date || r.timestamp || r.Timestamp);
       if (!isNaN(entryDate)) {
         if (!agg[key].date || entryDate > new Date(agg[key].date)) {
@@ -223,7 +220,7 @@ async function loadAndRender(csvUrl, periodValue, targetEl){
         }
       }
     });
-  
+
     const rows = Object.values(agg).sort((a,b)=> b.count - a.count).slice(0,50);
     renderList(targetEl, rows);
   }catch(e){
@@ -245,17 +242,12 @@ document.getElementById("tab-rev").addEventListener("click", ()=>{
   document.getElementById("panel-adv").classList.add("hidden");
 });
 
-document.getElementById("refresh").addEventListener("click", ()=> loadAndRender(CSV_ADV, document.getElementById("adv-period").value, document.getElementById("list-adv")));
-document.getElementById("refresh2").addEventListener("click", ()=> loadAndRender(CSV_REV, document.getElementById("rev-period").value, document.getElementById("list-rev")));
-
-loadAndRender(CSV_ADV, document.getElementById("adv-period").value, document.getElementById("list-adv"));
-loadAndRender(CSV_REV, document.getElementById("rev-period").value, document.getElementById("list-rev"));
-
 const canvas = document.getElementById("confetti");
 const ctx = canvas.getContext("2d");
 let confetti = [];
 function resize(){ canvas.width = window.innerWidth; canvas.height = window.innerHeight; }
 window.addEventListener("resize", resize); resize();
+
 function burstConfetti(){
   confetti = [];
   for(let i=0;i<120;i++){
@@ -292,10 +284,11 @@ function groupBy(arr, keyFn) {
   });
   return m;
 }
+
 function aggregatePerDay(rows) {
   const dayGroups = groupBy(rows, r => (r.date || r.Date));
-  const out = new Map();
-  dayGroups.forEach((items) => {
+  const out = new Map(); // date -> sorted array
+  dayGroups.forEach((items, day) => {
     const perNurse = new Map();
     items.forEach(r => {
       const nurse = r.nurse || r.Nurse || r.name || r.Name || "Unknown";
@@ -304,10 +297,11 @@ function aggregatePerDay(rows) {
     });
     const arr = Array.from(perNurse.entries()).map(([nurse,total]) => ({ nurse, total }));
     arr.sort((a,b)=> b.total - a.total);
-    out.set('x', arr);
+    out.set(day, arr);
   });
   return out;
 }
+
 function awardDailyTop1(sortedArray) {
   const points = new Map();
   if (!sortedArray.length) return points;
@@ -315,6 +309,7 @@ function awardDailyTop1(sortedArray) {
   sortedArray.filter(x => x.total === top).forEach(w => points.set(w.nurse, 1));
   return points;
 }
+
 function buildChampionshipTop1PerDivision(advRows, revRows, periodValue) {
   const fAdv = filterByPeriod(advRows, periodValue);
   const fRev = filterByPeriod(revRows, periodValue);
@@ -387,6 +382,7 @@ refreshCumulative();
 </script>
 </body>
 </html>
+
  
 
 
