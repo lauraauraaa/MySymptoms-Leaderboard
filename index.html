@@ -1,9 +1,8 @@
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>🏆 MySymptoms Nurse Championship!!! 🏆</title>
   <style>
     :root{
@@ -32,7 +31,7 @@
     h1{font-size:20px;margin:0}
     .sub{color:var(--muted);font-size:13px;margin-top:2px}
     .tabs{display:flex;gap:8px;margin:16px 0 10px;position:sticky;top:0;background:var(--bg);padding:8px 0;z-index:2}
-    .tab{flex:1;text-align:center;padding:10px 12px;border-radius:999px;background:var(--pill);color:var(--accent);font-weight:600;cursor:pointer;border:1px solid rgba(79,70,229,.15);}
+    .tab{flex:1;text-align:center;padding:10px 12px;border-radius:999px;background:var(--pill);color:var(--accent);font-weight:600;border:1px solid rgba(79,70,229,.15);}
     .tab[aria-selected="true"]{background:var(--accent);color:white;box-shadow:var(--shadow)}
     .card{background:var(--card);border-radius:16px;box-shadow:var(--shadow);padding:12px;margin:10px 0;display:flex;align-items:center;gap:12px;}
     .rank{width:34px;height:34px;border-radius:10px;display:grid;place-items:center;font-weight:700;color:white;flex-shrink:0;}
@@ -54,10 +53,7 @@
     button.primary{background:#4f46e5;color:white;border-color:transparent}
     .hint{font-size:12px;color:#64748b}
     canvas#confetti{position:fixed;inset:0;pointer-events:none;z-index:99}
-    button, 
-    .tab {
-    cursor: pointer;
-    }
+    button, .tab { cursor: pointer; }
   </style>
 </head>
 <body>
@@ -72,7 +68,7 @@
   </header>
 
   <div role="tablist" class="tabs">
-    <div class="tab" role="tab" id="tab-adv" aria-controls="panel-adv" aria-selected="true">Division 1 · Highest Introduction Rate </div>
+    <div class="tab" role="tab" id="tab-adv" aria-controls="panel-adv" aria-selected="true">Division 1 · Highest Introduction Rate</div>
     <div class="tab" role="tab" id="tab-rev" aria-controls="panel-rev" aria-selected="false">Division 2 · Highest Nexus Review Rate</div>
   </div>
 
@@ -107,8 +103,11 @@
     <div id="list-rev"></div>
     <div class="footer-note">Division 2 counts nurses by number of MySymptoms data reviewed on NexusViewer.</div>
   </div>
-</div>
 
+  <div class="footer-note">
+    Top nurse each day in each division earns 1 point. Ties for first: each tied nurse earns 1 point.
+  </div>
+</div>
 
 <script>
 const CSV_ADV = "https://docs.google.com/spreadsheets/d/e/2PACX-1vSgOmM5oc-z4f_mMYkyuXjQ03e2nQS4r2YpTfG9n2X_Ex6Q4ob4vBKQ0mzyxPMQ3KIDHPDxTqyfUPkk/pub?output=csv";
@@ -190,20 +189,19 @@ async function loadAndRender(csvUrl, periodValue, targetEl){
   try{
     const res = await fetch(csvUrl);
     const txt = await res.text();
-    let data = parseCSV(txt);
+    const data = parseCSV(txt);
     const filtered = filterByPeriod(data, periodValue);
-    
+
     const agg = {};
     filtered.forEach(r => {
       const nurse = r.nurse || r.Nurse || r.name || r.Name || "Unknown";
-      const ward = r.ward || r.Ward || "";
+      const ward  = r.ward  || r.Ward  || "";
       const count = Number(r.count || r.Count || 0);
-      const key = nurse + "||" + ward;
-      
+      const key   = nurse + "||" + ward;
+
       if (!agg[key]) agg[key] = { nurse, ward, count: 0, date: null };
-      
       agg[key].count += (isNaN(count) ? 0 : count);
-    
+
       const entryDate = new Date(r.date || r.Date || r.timestamp || r.Timestamp);
       if (!isNaN(entryDate)) {
         if (!agg[key].date || entryDate > new Date(agg[key].date)) {
@@ -211,7 +209,7 @@ async function loadAndRender(csvUrl, periodValue, targetEl){
         }
       }
     });
-  
+
     const rows = Object.values(agg).sort((a,b)=> b.count - a.count).slice(0,50);
     renderList(targetEl, rows);
   }catch(e){
@@ -224,29 +222,21 @@ const tabAdv = document.getElementById("tab-adv");
 const tabRev = document.getElementById("tab-rev");
 const panelAdv = document.getElementById("panel-adv");
 const panelRev = document.getElementById("panel-rev");
+
 tabAdv.addEventListener("click", ()=>{
   tabAdv.setAttribute("aria-selected","true");
   tabRev.setAttribute("aria-selected","false");
   panelAdv.classList.remove("hidden");
   panelRev.classList.add("hidden");
 });
+
 tabRev.addEventListener("click", ()=>{
   tabRev.setAttribute("aria-selected","true");
   tabAdv.setAttribute("aria-selected","false");
   panelRev.classList.remove("hidden");
   panelAdv.classList.add("hidden");
 });
-
-const advSel = document.getElementById("adv-period");
-const revSel = document.getElementById("rev-period");
-const listAdv = document.getElementById("list-adv");
-const listRev = document.getElementById("list-rev");
-document.getElementById("refresh").addEventListener("click", ()=> loadAndRender(CSV_ADV, advSel.value, listAdv));
-document.getElementById("refresh2").addEventListener("click", ()=> loadAndRender(CSV_REV, revSel.value, listRev));
-
-loadAndRender(CSV_ADV, advSel.value, listAdv);
-loadAndRender(CSV_REV, revSel.value, listRev);
-
+  
 const canvas = document.getElementById("confetti");
 const ctx = canvas.getContext("2d");
 let confetti = [];
@@ -280,126 +270,17 @@ function animate(){
   if (confetti.length) requestAnimationFrame(animate);
 }
 
-function parseScheme(s) {
-  return s.split('-').map(x => Number(x)||0).filter(x=>x>0);
-}
+const advSel = document.getElementById("adv-period");
+const revSel = document.getElementById("rev-period");
+const listAdv = document.getElementById("list-adv");
+const listRev = document.getElementById("list-rev");
 
-function groupBy(arr, keyFn) {
-  const m = new Map();
-  arr.forEach(item => {
-    const k = keyFn(item);
-    if (!m.has(k)) m.set(k, []);
-    m.get(k).push(item);
-  });
-  return m;
-}
+document.getElementById("refresh").addEventListener("click", ()=> loadAndRender(CSV_ADV, advSel.value, listAdv));
+document.getElementById("refresh2").addEventListener("click", ()=> loadAndRender(CSV_REV, revSel.value, listRev));
 
-function aggregatePerDay(rows) {
-  const dayGroups = groupBy(rows, r => (r.date || r.Date));
-  const out = new Map(); 
-  dayGroups.forEach((items, day) => {
-    const perNurse = new Map();
-    items.forEach(r => {
-      const nurse = r.nurse || r.Nurse || r.name || r.Name || "Unknown";
-      const cnt   = Number(r.count || r.Count || 0) || 0;
-      perNurse.set(nurse, (perNurse.get(nurse) || 0) + cnt);
-    });
-    const arr = Array.from(perNurse.entries()).map(([nurse,total]) => ({ nurse, total }));
-    arr.sort((a,b)=> b.total - a.total);
-    out.set(day, arr);
-  });
-  return out;
-}
-
-function awardDailyTop1(sortedArray) {
-  const points = new Map();
-  if (!sortedArray.length) return points;
-  const topScore = sortedArray[0].total;
-  const winners = sortedArray.filter(x => x.total === topScore);
-  winners.forEach(w => points.set(w.nurse, 1));
-  return points;
-}
-
-function buildChampionshipTop1PerDivision(advRows, revRows, periodValue) {
-  const fAdv = filterByPeriod(advRows, periodValue);
-  const fRev = filterByPeriod(revRows, periodValue);
-
-  const advPerDay = aggregatePerDay(fAdv);
-  const revPerDay = aggregatePerDay(fRev);
-
-  const standings = new Map(); 
-
-  advPerDay.forEach(arr => {
-    const daily = awardDailyTop1(arr);
-    daily.forEach((p, nurse) => standings.set(nurse, (standings.get(nurse)||0) + p));
-  });
-
-  revPerDay.forEach(arr => {
-    const daily = awardDailyTop1(arr);
-    daily.forEach((p, nurse) => standings.set(nurse, (standings.get(nurse)||0) + p));
-  });
-
-  return Array.from(standings.entries())
-    .map(([nurse, pts]) => ({ nurse, ward: "", count: pts }))
-    .sort((a,b)=> b.count - a.count)
-    .slice(0,50);
-}
-
-async function refreshPointsPanel() {
-  try {   
-    const [advTxt, revTxt] = await Promise.all([fetch(CSV_ADV).then(r=>r.text()), fetch(CSV_REV).then(r=>r.text())]);
-    const advRows = parseCSV(advTxt);
-    const revRows = parseCSV(revTxt);
-
-    const period = document.getElementById('pts-period').value;
-    const standings = buildChampionshipTop1PerDivision(advRows, revRows, period);
-
-    const list = document.getElementById('list-pts');
-    list.innerHTML = "";
-    standings.forEach((r, idx) => {
-      const rankClass = idx===0 ? "gold" : idx===1 ? "silver" : idx===2 ? "bronze" : "default";
-      const div = document.createElement("div");
-      div.className = "card";
-      div.innerHTML = `
-        <div class="rank ${rankClass}">${idx+1}</div>
-        <div class="avatar">${toInitials(r.nurse)}</div>
-        <div class="meta">
-          <div class="name">${r.nurse}</div>
-          <div class="small">Championship points (Introductions + Reviews)</div>
-        </div>
-        <div class="score">${r.count}</div>
-      `;
-      list.appendChild(div);
-    });
-  } catch (e) {
-    const list = document.getElementById('list-pts');
-    list.innerHTML = "<div class='small' style='padding:8px;color:#ef4444'>Could not compute championship points.</div>";
-    console.error(e);
-  }
-}
-
-const tabPts  = document.getElementById("tab-pts");
-const panelPts= document.getElementById("panel-pts");
-if (tabPts) {
-  tabPts.addEventListener("click", ()=>{
-    tabAdv.setAttribute("aria-selected","false");
-    tabRev.setAttribute("aria-selected","false");
-    tabPts.setAttribute("aria-selected","true");
-    panelAdv.classList.add("hidden");
-    panelRev.classList.add("hidden");
-    panelPts.classList.remove("hidden");
-    refreshPointsPanel();
-  });
-}
-const refreshPtsBtn = document.getElementById("refresh-pts");
-if (refreshPtsBtn) {
-  refreshPtsBtn.addEventListener("click", refreshPointsPanel);
-}
-const ptsPeriod = document.getElementById("pts-period");
-if (ptsPeriod) {
-  ptsPeriod.addEventListener("change", refreshPointsPanel);
-}
-
+loadAndRender(CSV_ADV, advSel.value, listAdv);
+loadAndRender(CSV_REV, revSel.value, listRev);
 </script>
 </body>
 </html>
+
