@@ -114,24 +114,11 @@
       <option value="30">Last 30 days</option>
       <option value="all">All-time</option>
     </select>
-    <select id="pts-scheme" title="Points scheme">
-      <option value="3-0-0" selected>Top1: 3 pts (winner only)</option>
-      <option value="5-3-1">Top3: 5/3/1 pts</option>
-      <option value="2-1-0">Top2: 2/1 pts</option>
-    </select>
-    <label class="hint" style="display:flex;align-items:center;gap:6px">
-      <input type="checkbox" id="pts-include-adv" checked>
-      Include Introductions
-    </label>
-    <label class="hint" style="display:flex;align-items:center;gap:6px">
-      <input type="checkbox" id="pts-include-rev" checked>
-      Include Reviews
-    </label>
     <button class="primary" id="refresh-pts">Refresh</button>
   </div>
-  <div class="section-title">Championship Standings</div>
+  <div class="section-title">Championship Standings (Introductions + Reviews)</div>
   <div id="list-pts"></div>
-  <div class="footer-note">Points are awarded daily to the top performers. Ties split points for that place.</div>
+  <div class="footer-note">Top nurse each day in each division earns 1 point. Ties for first: each tied nurse earns 1 point.</div>
 </div>
 
 
@@ -311,61 +298,46 @@ function aggregatePerDay(rows) {
     const perNurse = new Map();
     items.forEach(r => {
       const nurse = r.nurse || r.Nurse || r.name || r.Name || "Unknown";
-      const ward  = r.ward  || r.Ward  || "";
       const cnt   = Number(r.count || r.Count || 0) || 0;
-      if (!perNurse.has(nurse)) perNurse.set(nurse, { nurse, total: 0, wards: new Set() });
-      const obj = perNurse.get(nurse);
-      obj.total += cnt;
-      if (ward) obj.wards.add(ward);
+      perNurse.set(nurse, (perNurse.get(nurse) || 0) + cnt);
     });
-    out.set(day, Array.from(perNurse.values()).sort((a,b)=>b.total - a.total));
+    const arr = Array.from(perNurse.entries()).map(([nurse,total]) => ({ nurse, total }));
+    arr.sort((a,b)=> b.total - a.total);
+    out.set(day, arr);
   });
   return out;
 }
 
-function awardDailyPoints(sortedArray, scheme) {
+function awardDailyTop1(sortedArray) {
   const points = new Map();
-  if (!sortedArray.length || !scheme.length) return points;
-
-  let place = 0; 
-  let idx = 0;
-  while (idx < sortedArray.length && place < scheme.length) {
-    const start = idx;
-    const scoreAtStart = sortedArray[start].total;
-    while (idx < sortedArray.length && sortedArray[idx].total === scoreAtStart) idx++;
-    const tieGroup = sortedArray.slice(start, idx);
-    const pts = scheme[place] || 0;
-    if (pts > 0) {
-      const share = pts / tieGroup.length;
-      tieGroup.forEach(obj => points.set(obj.nurse, (points.get(obj.nurse)||0) + share));
-    }
-    place++;
-  }
+  if (!sortedArray.length) return points;
+  const topScore = sortedArray[0].total;
+  const winners = sortedArray.filter(x => x.total === topScore);
+  winners.forEach(w => points.set(w.nurse, 1));
   return points;
 }
 
-function buildChampionship(advRows, revRows, periodValue, schemeStr, includeAdv, includeRev) {
-  const fAdv = includeAdv ? filterByPeriod(advRows, periodValue) : [];
-  const fRev = includeRev ? filterByPeriod(revRows, periodValue) : [];
+function buildChampionshipTop1PerDivision(advRows, revRows, periodValue) {
+  const fAdv = filterByPeriod(advRows, periodValue);
+  const fRev = filterByPeriod(revRows, periodValue);
 
   const advPerDay = aggregatePerDay(fAdv);
   const revPerDay = aggregatePerDay(fRev);
 
-  const scheme = parseScheme(schemeStr);
   const standings = new Map(); 
 
   advPerDay.forEach(arr => {
-    const daily = awardDailyPoints(arr, scheme);
+    const daily = awardDailyTop1(arr);
     daily.forEach((p, nurse) => standings.set(nurse, (standings.get(nurse)||0) + p));
   });
 
   revPerDay.forEach(arr => {
-    const daily = awardDailyPoints(arr, scheme);
+    const daily = awardDailyTop1(arr);
     daily.forEach((p, nurse) => standings.set(nurse, (standings.get(nurse)||0) + p));
   });
 
   return Array.from(standings.entries())
-    .map(([nurse, pts]) => ({ nurse, ward: "", count: Math.round(pts * 100) / 100 })) // reuse 'count' for display
+    .map(([nurse, pts]) => ({ nurse, ward: "", count: pts }))
     .sort((a,b)=> b.count - a.count)
     .slice(0,50);
 }
@@ -377,11 +349,7 @@ async function refreshPointsPanel() {
     const revRows = parseCSV(revTxt);
 
     const period = document.getElementById('pts-period').value;
-    const scheme = document.getElementById('pts-scheme').value;
-    const incAdv = document.getElementById('pts-include-adv').checked;
-    const incRev = document.getElementById('pts-include-rev').checked;
-
-    const standings = buildChampionship(advRows, revRows, period, scheme, incAdv, incRev);
+    const standings = buildChampionshipTop1PerDivision(advRows, revRows, period);
 
     const list = document.getElementById('list-pts');
     list.innerHTML = "";
@@ -394,7 +362,7 @@ async function refreshPointsPanel() {
         <div class="avatar">${toInitials(r.nurse)}</div>
         <div class="meta">
           <div class="name">${r.nurse}</div>
-          <div class="small">Total points</div>
+          <div class="small">Championship points (Introductions + Reviews)</div>
         </div>
         <div class="score">${r.count}</div>
       `;
@@ -407,22 +375,27 @@ async function refreshPointsPanel() {
   }
 }
 
-const tabPts = document.getElementById("tab-pts");
-const panelPts = document.getElementById("panel-pts");
-tabPts.addEventListener("click", ()=>{
-  tabAdv.setAttribute("aria-selected","false");
-  tabRev.setAttribute("aria-selected","false");
-  tabPts.setAttribute("aria-selected","true");
-  panelAdv.classList.add("hidden");
-  panelRev.classList.add("hidden");
-  panelPts.classList.remove("hidden");
-  refreshPointsPanel();
-});
-document.getElementById("refresh-pts").addEventListener("click", refreshPointsPanel);
-['pts-period','pts-scheme','pts-include-adv','pts-include-rev'].forEach(id=>{
-  const el = document.getElementById(id);
-  el && el.addEventListener('change', refreshPointsPanel);
-});
+const tabPts  = document.getElementById("tab-pts");
+const panelPts= document.getElementById("panel-pts");
+if (tabPts) {
+  tabPts.addEventListener("click", ()=>{
+    tabAdv.setAttribute("aria-selected","false");
+    tabRev.setAttribute("aria-selected","false");
+    tabPts.setAttribute("aria-selected","true");
+    panelAdv.classList.add("hidden");
+    panelRev.classList.add("hidden");
+    panelPts.classList.remove("hidden");
+    refreshPointsPanel();
+  });
+}
+const refreshPtsBtn = document.getElementById("refresh-pts");
+if (refreshPtsBtn) {
+  refreshPtsBtn.addEventListener("click", refreshPointsPanel);
+}
+const ptsPeriod = document.getElementById("pts-period");
+if (ptsPeriod) {
+  ptsPeriod.addEventListener("change", refreshPointsPanel);
+}
 
 </script>
 </body>
