@@ -219,8 +219,8 @@ async function loadAndRender(csvUrl, periodValue, targetEl){
       if (!agg[key]) agg[key] = { nurse, ward, count: 0, date: null };
       
       agg[key].count += (isNaN(count) ? 0 : count);
-    });
-    const entryDate = new Date(r.date || r.Date || r.timestamp || r.Timestamp);
+    
+      const entryDate = new Date(r.date || r.Date || r.timestamp || r.Timestamp);
       if (!isNaN(entryDate)) {
         if (!agg[key].date || entryDate > new Date(agg[key].date)) {
           agg[key].date = entryDate.toISOString();
